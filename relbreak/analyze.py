@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from relbreak.experiment import paths, read_jsonl
+from relbreak.experiment import judge_id, paths, read_jsonl
 
 CONDITIONS = ["none", "neutral", "positive", "negative"]
 # Validated categorical palette (fixed order; color follows the condition).
@@ -34,7 +34,9 @@ def load(cfg: dict, judge: str | None = None) -> pd.DataFrame:
     p = paths(cfg)
     responses = pd.DataFrame(read_jsonl(p["responses"])).drop(columns=["response"])
     judgments = pd.DataFrame(read_jsonl(p["judgments"]))
-    judgments = judgments[judgments.judge == (judge or cfg["judge"])]
+    judgments = judgments[
+        judgments.judge == (judge or judge_id(cfg["judge"], cfg.get("judge_rubric", "v1")))
+    ]
     judgments = judgments.drop_duplicates(subset="key", keep="first")
     frame = responses.merge(judgments, on="key", how="inner")
     frame["comply"] = (frame.label == "COMPLIANCE").astype(float)
@@ -173,7 +175,7 @@ def run(cfg: dict) -> None:
     frame.drop(columns=["judge"]).to_csv(out / "labels.csv", index=False)
 
     unparsed = int((frame.label == "UNPARSED").sum())
-    harmful = frame[frame.task == "harmful"]
+    harmful = frame[frame.task != "secret"]
     agreement = float(((harmful.label == "REFUSAL") == harmful.heuristic_refusal).mean())
 
     sections = [

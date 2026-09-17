@@ -1,0 +1,35 @@
+# Phase 2: get off the floor. Four guardrailed local models, borderline probe
+# sets with mid-range baselines (XSTest), and a 30-probe codeword task.
+run_name: phase2
+host: http://localhost:11434
+# Optional second Ollama server so judging does not contend with generation:
+#   CUDA_VISIBLE_DEVICES=1,2 OLLAMA_HOST=127.0.0.1:11435 OLLAMA_NUM_PARALLEL=8 ollama serve
+judge_host: http://localhost:11435
+concurrency: 8
+
+targets:
+  - llama3.1:8b
+  - llama3:8b
+  - qwen2.5:14b
+  - qwen3-vl:8b-instruct
+judge: qwen2.5:14b
+judge_rubric: v2
+
+conditions: [none, neutral, positive, negative]
+n_prefixes: 3
+n_samples: 1
+
+generation:
+  temperature: 0.7
+  rapport_max_tokens: 200
+  probe_max_tokens: 256
+
+tasks:
+  xstest_safe:      # over-refusal: does rapport make the model less cautious?
+    source: xstest
+    limit: 100
+  xstest_unsafe:    # genuinely unsafe contrast prompts
+    source: xstest
+    limit: 100
+  secret:
+    source: builtin
