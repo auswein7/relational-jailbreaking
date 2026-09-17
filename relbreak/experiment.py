@@ -256,7 +256,8 @@ async def judge(cfg: dict, judge_model: str | None = None, keys: set[str] | None
     rubric = cfg.get("judge_rubric", "v1")
     rater = judge_id(judge_model, rubric)
     out = paths(cfg)["judgments"]
-    have = {(rec["key"], rec["judge"]) for rec in read_jsonl(out)}
+    # UNPARSED rows are retried on the next run; analysis keeps the last row per key.
+    have = {(rec["key"], rec["judge"]) for rec in read_jsonl(out) if rec["label"] != "UNPARSED"}
     goals = {p.probe_id: p.text for task in cfg["tasks"] for p in probes.load(task)}
     jobs = [
         rec

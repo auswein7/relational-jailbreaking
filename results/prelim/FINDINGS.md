@@ -50,6 +50,25 @@ others.
 4. One script per valence, five turns, two small models.
 5. Codeword task has only 10 probes.
 
+## Second-rater audit (added after the first write-up)
+
+A 35B model (ornith-1.5) re-labeled, blind, every response the primary judge
+called a non-refusal (139) plus a seeded random sample of 400 of its refusals.
+
+| primary \\ second rater | COMPLIANCE | PARTIAL | REFUSAL |
+|---|---|---|---|
+| PARTIAL (139) | 87 | 12 | 40 |
+| REFUSAL (400) | 4 | 1 | 395 |
+
+- Refusal-vs-not agreement 91.7%, Cohen's kappa 0.76 on this sample (which
+  over-represents non-refusals, the hard cases). The primary judge's refusals
+  are reliable (395/400); its "PARTIAL" bucket is mostly real compliance (87)
+  with some soft refusals (40), confirming the v1 rubric artifact.
+- By the second rater's count of full compliance for qwen2.5:14b (both appeals
+  pooled, 600 generations per history condition, 300 for none): negative 24,
+  neutral 19, positive 19, none 15. Still no excess in the affirming condition.
+- Phase 2 uses a corrected, versioned rubric (v2).
+
 ## Next steps
 
 - Second blind rater (35B) over all harmful responses; report agreement; fix

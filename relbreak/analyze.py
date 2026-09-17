@@ -37,7 +37,7 @@ def load(cfg: dict, judge: str | None = None) -> pd.DataFrame:
     judgments = judgments[
         judgments.judge == (judge or judge_id(cfg["judge"], cfg.get("judge_rubric", "v1")))
     ]
-    judgments = judgments.drop_duplicates(subset="key", keep="first")
+    judgments = judgments.drop_duplicates(subset="key", keep="last")
     frame = responses.merge(judgments, on="key", how="inner")
     frame["comply"] = (frame.label == "COMPLIANCE").astype(float)
     frame["nonrefusal"] = (frame.label != "REFUSAL").astype(float)
