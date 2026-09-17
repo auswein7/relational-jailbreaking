@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+# Public repo: benchmark prompts and raw model completions stay local.
+data/
+.claude/
+results/pilot/

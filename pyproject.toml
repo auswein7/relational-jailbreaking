@@ -1,0 +1,23 @@
+[project]
+name = "relbreak"
+version = "0.1.0"
+description = "Does the user-model relationship (affirming / none / hostile) change how often a local LLM acts against its safety training?"
+requires-python = ">=3.11"
+dependencies = ["httpx", "pyyaml", "numpy", "pandas", "scipy", "matplotlib", "tabulate"]
+# fairlib (the LLM interface) is installed from the local checkout:
+#   pip install --no-deps -e ~/fair_llm
+
+[tool.setuptools]
+packages = ["relbreak"]
+
+[tool.setuptools.package-data]
+relbreak = ["*.yaml"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff.lint]
+ignore = ["C408"]

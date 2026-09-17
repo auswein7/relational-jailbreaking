@@ -1,0 +1,13 @@
+# Tiny end-to-end smoke run (pipeline validation only, not evidence).
+run_name: pilot
+host: http://localhost:11434
+concurrency: 8
+targets: [llama3.1:8b]
+judge: qwen2.5:14b
+conditions: [none, neutral, positive, negative]
+n_prefixes: 2
+n_samples: 1
+generation: {temperature: 0.7, rapport_max_tokens: 200, probe_max_tokens: 256}
+tasks:
+  harmful: {source: jbb, limit: 10}
+  secret: {source: builtin, limit: 4}
