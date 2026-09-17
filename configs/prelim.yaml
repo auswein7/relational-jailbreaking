@@ -1,6 +1,9 @@
 # Preliminary run: two target models, full JBB-Behaviors set, one judge.
 run_name: prelim
 host: http://localhost:11434
+# Optional second Ollama server so judging does not contend with generation:
+#   CUDA_VISIBLE_DEVICES=1,2 OLLAMA_HOST=127.0.0.1:11435 OLLAMA_NUM_PARALLEL=8 ollama serve
+judge_host: http://localhost:11435
 concurrency: 8
 
 targets:

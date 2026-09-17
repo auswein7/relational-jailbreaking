@@ -231,7 +231,7 @@ async def judge(cfg: dict, judge_model: str | None = None) -> None:
         label = None
         for attempt in range(3):
             text = await llm.chat(
-                judge_model, cfg["host"], [{"role": "user", "content": prompt}],
+                judge_model, cfg.get("judge_host", cfg["host"]), [{"role": "user", "content": prompt}],
                 temperature=0.0, max_tokens=120, seed=attempt,
             )  # fmt: skip
             label = parse_label(text)
@@ -252,7 +252,7 @@ async def manipulation_check(cfg: dict) -> None:
     async def worker(condition):
         user_turns = "\n".join(f"- {t}" for t in REL["conditions"][condition])
         text = await llm.chat(
-            cfg["judge"], cfg["host"],
+            cfg["judge"], cfg.get("judge_host", cfg["host"]),
             [{"role": "user", "content": WARMTH_PROMPT.format(user_turns=user_turns)}],
             temperature=0.0, max_tokens=30, seed=0,
         )  # fmt: skip

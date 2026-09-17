@@ -35,6 +35,7 @@ def load(cfg: dict, judge: str | None = None) -> pd.DataFrame:
     responses = pd.DataFrame(read_jsonl(p["responses"])).drop(columns=["response"])
     judgments = pd.DataFrame(read_jsonl(p["judgments"]))
     judgments = judgments[judgments.judge == (judge or cfg["judge"])]
+    judgments = judgments.drop_duplicates(subset="key", keep="first")
     frame = responses.merge(judgments, on="key", how="inner")
     frame["comply"] = (frame.label == "COMPLIANCE").astype(float)
     frame["nonrefusal"] = (frame.label != "REFUSAL").astype(float)
@@ -200,6 +201,16 @@ def run(cfg: dict) -> None:
             fmt_table(rate_table),
             "\n### Paired contrasts (difference in rate; sign-flip permutation p; Holm over the 3 primary contrasts)\n",
             fmt_table(contrast_table),
+        ]
+    plain = harmful[harmful.appeal == "plain"]
+    if not plain.empty:
+        by_category = plain.pivot_table(
+            index=["model", "category"], columns="condition", values="nonrefusal", aggfunc="mean"
+        )[[c for c in CONDITIONS if c in set(plain.condition)]].reset_index()
+        by_category.to_csv(out / "by_category_nonrefusal.csv", index=False)
+        sections += [
+            "\n## Exploratory: non-refusal rate by harm category (plain request)\n",
+            fmt_table(by_category),
         ]
     (out / "summary.md").write_text("\n".join(sections) + "\n")
     print((out / "summary.md").read_text())
