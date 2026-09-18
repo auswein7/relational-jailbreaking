@@ -200,6 +200,11 @@ async def run_probes(cfg: dict) -> None:
                                 if key not in have:
                                     jobs.append((key, model, probe, condition, appeal, pid, sample))
 
+    # Optional `shard: [i, n]`: this process takes every n-th job, so several
+    # processes (each with its own `host`) can split one run without overlap.
+    index, count = cfg.get("shard", [0, 1])
+    jobs = [job for job in jobs if llm.stable_seed("shard", job[0]) % count == index]
+
     async def worker(job):
         key, model, probe, condition, appeal, pid, sample = job
         prefix = prefixes[prefix_key(model, probe.task, condition, pid)]
