@@ -1,7 +1,7 @@
 [project]
 name = "relbreak"
 version = "0.1.0"
-description = "Does the user-model relationship (affirming / none / hostile) change how often a local LLM acts against its safety training?"
+description = "Does the way a user relates to a language model change how it behaves at its guardrails? Relationship conditions, blind judging, paired analysis, local models via fairlib."
 requires-python = ">=3.11"
 dependencies = ["httpx", "pyyaml", "numpy", "pandas", "scipy", "matplotlib", "tabulate"]
 # fairlib (the LLM interface) is installed from the local checkout:

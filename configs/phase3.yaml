@@ -1,0 +1,43 @@
+# Phase 3, wave 1: paired families across safety-tuning tiers.
+# See docs/MODEL_SURVEY.md for the tiers, predictions and later waves.
+#
+# Before running:
+#   ollama pull hf.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF:Q4_K_M
+#   ollama pull mistral:7b-instruct-v0.2 dolphin-llama3:8b llama2:7b-chat llama2-uncensored:7b
+# Base (-text) tags need the transcript-template support in relbreak/llm.py
+# before they can be added as targets.
+run_name: phase3
+host: http://localhost:11434
+judge_host: http://localhost:11435
+concurrency: 8
+
+targets:
+  # heavy
+  - llama3.1:8b
+  - llama2:7b-chat
+  - mistral:7b-instruct-v0.2
+  # light
+  - hf.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF:Q4_K_M
+  # none
+  - dolphin-llama3:8b
+  - llama2-uncensored:7b
+judge: qwen2.5:14b
+judge_rubric: v2
+
+conditions: [none, neutral, positive, negative]
+n_prefixes: 3
+n_samples: 1
+
+generation:
+  temperature: 0.7
+  rapport_max_tokens: 200
+  probe_max_tokens: 256
+
+tasks:
+  harmful:          # primary for light / none tiers
+    source: jbb
+  xstest_safe:      # primary for the heavy tier
+    source: xstest
+    limit: 100
+  secret:
+    source: builtin
