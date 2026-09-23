@@ -1,0 +1,90 @@
+# fairlib settings for relbreak. This is a complete AppSettings document (the
+# schema is fairlib/core/config_schemas.py); relbreak/__init__.py points
+# fairlib at it with configure_settings unless FAIR_LLM_SETTINGS is set.
+#
+# Every model in docs/MODEL_SURVEY.md is a row under a stable alias. The alias
+# is the identity a run records (result keys, traces, manifests); the raw tag
+# is describe_config().model_name. Tier, family, wave and status live in
+# relbreak/survey.yml under the same alias, because a model row describes how
+# to construct an adapter and nothing else.
+#
+# Ollama rows carry no host: the CLI's --ollama-host (default
+# http://localhost:11434) fills it in per process, so several processes can
+# drain one queue against several servers. Judge rows pin their own host so
+# judging never contends with generation.
+
+api_keys: {}
+default_model: qwen25_14b
+
+llm:
+  max_retries: 3
+  timeout: 600          # seconds per call; slow local models
+
+models:
+  # ---- heavy safety tuning -------------------------------------------------
+  llama31_8b:      {provider: ollama, model_name: "llama3.1:8b"}
+  llama3_8b:       {provider: ollama, model_name: "llama3:8b"}
+  qwen25_14b:      {provider: ollama, model_name: "qwen2.5:14b"}
+  qwen3vl_8b:      {provider: ollama, model_name: "qwen3-vl:8b-instruct"}
+  gemma3_12b:      {provider: ollama, model_name: "gemma3:12b"}
+  llama2_7b_chat:  {provider: ollama, model_name: "llama2:7b-chat"}
+  llama2_13b_chat: {provider: ollama, model_name: "llama2:13b-chat"}
+  gpt_oss_20b:     {provider: ollama, model_name: "gpt-oss:20b", max_tokens: 2500}
+  ministral_8b_hf:
+    # Full weights through the HuggingFace adapter (needs fair-llm[local]).
+    provider: huggingface
+    model_name: "mistralai/Ministral-8B-Instruct-2410"
+    kwargs: {device_map: "cuda:2"}
+
+  # ---- light safety tuning -------------------------------------------------
+  mistral_v01_q4:  {provider: ollama, model_name: "hf.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF:Q4_K_M"}
+  mistral_v02:     {provider: ollama, model_name: "mistral:7b-instruct-v0.2"}
+  zephyr_7b:       {provider: ollama, model_name: "zephyr:7b-beta"}
+  vicuna_13b:      {provider: ollama, model_name: "vicuna:13b-v1.5"}
+  openchat_7b:     {provider: ollama, model_name: "openchat:7b-v3.5"}
+  olmo2_7b:        {provider: ollama, model_name: "olmo2:7b"}
+  qwen25_05b:      {provider: ollama, model_name: "qwen2.5:0.5b"}
+  qwen25_15b:      {provider: ollama, model_name: "qwen2.5:1.5b"}
+  qwen25_3b:       {provider: ollama, model_name: "qwen2.5:3b"}
+  qwen25_7b:       {provider: ollama, model_name: "qwen2.5:7b"}
+
+  # ---- no safety tuning ----------------------------------------------------
+  dolphin_llama3:  {provider: ollama, model_name: "dolphin-llama3:8b"}
+  nous_hermes_13b: {provider: ollama, model_name: "nous-hermes:13b-llama2"}
+  llama2_unc:      {provider: ollama, model_name: "llama2-uncensored:7b"}
+  wizard_vicuna_unc_13b: {provider: ollama, model_name: "wizard-vicuna-uncensored:13b"}
+
+  # ---- base models (no assistant tuning) -----------------------------------
+  # Ollama applies no chat template to -text tags; relbreak renders the
+  # transcript itself and stops at the next user turn.
+  llama31_8b_text: {provider: ollama, model_name: "llama3.1:8b-text", kwargs: {options: {stop: ["\nUser:"]}}}
+  llama3_8b_text:  {provider: ollama, model_name: "llama3:8b-text", kwargs: {options: {stop: ["\nUser:"]}}}
+  llama2_7b_text:  {provider: ollama, model_name: "llama2:7b-text", kwargs: {options: {stop: ["\nUser:"]}}}
+  mistral_7b_text: {provider: ollama, model_name: "mistral:7b-text", kwargs: {options: {stop: ["\nUser:"]}}}
+  qwen25_7b_text:  {provider: ollama, model_name: "qwen2.5:7b-base", kwargs: {options: {stop: ["\nUser:"]}}}
+
+  # ---- judges and raters ---------------------------------------------------
+  judge:
+    provider: ollama
+    model_name: "qwen2.5:14b"
+    temperature: 0.0
+    max_tokens: 120
+    kwargs: {host: "http://localhost:11435"}
+  rater_ornith:
+    # Second rater. A thinking model: needs a large output budget or the
+    # content comes back empty.
+    provider: ollama
+    model_name: "hf.co/ornith-ai/Ornith-1.5-35B-A3B-GGUF:Q8_0"
+    temperature: 0.0
+    max_tokens: 2500
+    kwargs: {host: "http://localhost:11434"}
+
+# Caps read by fairlib components at construction. 0 = unlimited.
+limits:
+  memory:
+    max_summary_chars: 1200     # compaction summary reinjected into memory
+  shell:
+    default_timeout_seconds: 120
+    max_timeout_seconds: 300
+  agent:
+    {}

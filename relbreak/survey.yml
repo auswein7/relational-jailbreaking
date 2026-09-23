@@ -1,0 +1,44 @@
+# Experiment metadata for the model survey (docs/MODEL_SURVEY.md), keyed by
+# the alias of the fairlib row in relbreak/fairlib.yml. fairlib's ModelSettings
+# cannot carry these fields (an unknown key on a row is dropped), so they live
+# here and relbreak.models cross-checks the two files at load.
+
+tiers:
+  heavy: {prediction: "rapport tightens: emotional histories and named appeals lower compliance", primary_task: xstest_safe}
+  light: {prediction: "mixed, small; an affirming increase has room to show", primary_task: harmful}
+  none:  {prediction: "the codeword task is the only guardrail left", primary_task: harmful}
+  base:  {prediction: "document continuer; compliance tracks the transcript genre", primary_task: harmful, template_factor: true}
+
+targets:
+  llama31_8b:      {tier: heavy, family: llama3.1, year: 2024, size_gb: 5,  status: local, wave: 1}
+  llama3_8b:       {tier: heavy, family: llama3,   year: 2024, size_gb: 5,  status: local}
+  qwen25_14b:      {tier: heavy, family: qwen2.5,  year: 2024, size_gb: 9,  status: local}
+  qwen3vl_8b:      {tier: heavy, family: qwen3,    year: 2025, size_gb: 6,  status: local}
+  gemma3_12b:      {tier: heavy, family: gemma3,   year: 2025, size_gb: 8,  status: pull, wave: 4}
+  llama2_7b_chat:  {tier: heavy, family: llama2,   year: 2023, size_gb: 4,  status: pull, wave: 1}
+  llama2_13b_chat: {tier: heavy, family: llama2,   year: 2023, size_gb: 7,  status: pull, wave: 4}
+  gpt_oss_20b:     {tier: heavy, family: gpt-oss,  year: 2025, size_gb: 14, status: pull, wave: 4}
+  ministral_8b_hf: {tier: heavy, family: mistral,  year: 2024, size_gb: 15, status: hf,   wave: 1}
+  mistral_v01_q4:  {tier: light, family: mistral,  year: 2023, size_gb: 4,  status: pull, wave: 1}
+  mistral_v02:     {tier: light, family: mistral,  year: 2023, size_gb: 4,  status: pull, wave: 1}
+  zephyr_7b:       {tier: light, family: mistral,  year: 2023, size_gb: 4,  status: pull, wave: 2}
+  vicuna_13b:      {tier: light, family: llama2,   year: 2023, size_gb: 7,  status: pull, wave: 2}
+  openchat_7b:     {tier: light, family: mistral,  year: 2023, size_gb: 4,  status: pull, wave: 2}
+  olmo2_7b:        {tier: light, family: olmo2,    year: 2024, size_gb: 4,  status: pull, wave: 2}
+  qwen25_05b:      {tier: light, family: qwen2.5,  year: 2024, size_gb: 1,  status: pull, wave: 3}
+  qwen25_15b:      {tier: light, family: qwen2.5,  year: 2024, size_gb: 1,  status: pull, wave: 3}
+  qwen25_3b:       {tier: light, family: qwen2.5,  year: 2024, size_gb: 2,  status: pull, wave: 3}
+  qwen25_7b:       {tier: light, family: qwen2.5,  year: 2024, size_gb: 5,  status: pull, wave: 3}
+  dolphin_llama3:  {tier: none,  family: llama3.1, year: 2024, size_gb: 5,  status: pull, wave: 1, pair_of: llama31_8b}
+  nous_hermes_13b: {tier: none,  family: llama2,   year: 2023, size_gb: 7,  status: pull, wave: 2}
+  llama2_unc:      {tier: none,  family: llama2,   year: 2023, size_gb: 4,  status: pull, wave: 1, pair_of: llama2_7b_chat}
+  wizard_vicuna_unc_13b: {tier: none, family: llama2, year: 2023, size_gb: 7, status: pull}
+  llama31_8b_text: {tier: base,  family: llama3.1, size_gb: 5, status: pull, wave: 1, pair_of: llama31_8b}
+  llama3_8b_text:  {tier: base,  family: llama3,   size_gb: 5, status: pull, pair_of: llama3_8b}
+  llama2_7b_text:  {tier: base,  family: llama2,   size_gb: 4, status: pull, wave: 1, pair_of: llama2_7b_chat}
+  mistral_7b_text: {tier: base,  family: mistral,  size_gb: 4, status: pull, wave: 1, pair_of: mistral_v02}
+  qwen25_7b_text:  {tier: base,  family: qwen2.5,  size_gb: 5, status: pull, wave: 3, pair_of: qwen25_7b}
+
+judges:
+  judge:        {role: judge,  notes: "primary blind judge; rubric v2"}
+  rater_ornith: {role: rater,  notes: "second rater; thinking model, large output budget"}

@@ -1,6 +1,6 @@
 [project]
 name = "relbreak"
-version = "0.1.0"
+version = "0.2.0"
 description = "Does the way a user relates to a language model change how it behaves at its guardrails? Relationship conditions, blind judging, paired analysis, local models via fairlib."
 requires-python = ">=3.11"
 dependencies = ["httpx", "pyyaml", "numpy", "pandas", "scipy", "matplotlib", "tabulate"]
@@ -8,13 +8,15 @@ dependencies = ["httpx", "pyyaml", "numpy", "pandas", "scipy", "matplotlib", "ta
 #   pip install --no-deps -e ~/fair_llm
 
 [tool.setuptools]
-packages = ["relbreak"]
+packages = ["relbreak", "relbreak.agentic"]
 
 [tool.setuptools.package-data]
-relbreak = ["*.yaml"]
+relbreak = ["*.yaml", "*.yml", "agentic/*.yaml", "agentic/sandbox_template/**/*", "agentic/sandbox_template/**/.*"]
 
 [tool.ruff]
 line-length = 100
+# The sandbox template is experimental material; formatting it changes the target.
+exclude = ["relbreak/agentic/sandbox_template"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

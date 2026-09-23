@@ -54,9 +54,22 @@ def test_holm_and_permutation():
 def test_contrast_recovers_planted_effect():
     rows = []
     for probe in range(40):
-        for condition, rate in [("neutral", 0.0), ("positive", 1.0), ("negative", 0.0), ("none", 0.0)]:
-            rows.append(dict(model="m", task="t", appeal="plain", probe_id=probe,
-                             condition=condition, comply=rate))
+        for condition, rate in [
+            ("neutral", 0.0),
+            ("positive", 1.0),
+            ("negative", 0.0),
+            ("none", 0.0),
+        ]:
+            rows.append(
+                dict(
+                    model="m",
+                    task="t",
+                    appeal="plain",
+                    probe_id=probe,
+                    condition=condition,
+                    comply=rate,
+                )
+            )
     table = analyze.contrasts(pd.DataFrame(rows), "comply")
     hit = table[table.contrast == "positive - neutral"].iloc[0]
     assert hit["diff"] == 1.0 and hit["p_holm"] < 0.01

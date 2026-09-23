@@ -1,24 +1,18 @@
-"""The only place a model is touched: every call goes through fairlib."""
+"""One-shot model calls for phases 1-3 and the judges. The model is an alias
+resolved by relbreak.models; the call is fairlib's ainvoke with the neutral
+generation options; the reply is the fairlib Message, usage included."""
 
 from __future__ import annotations
 
 import hashlib
 import logging
 
-from fairlib.core.message import Message
-from fairlib.modules.mal.local_llama_adapter import OllamaAdapter
+from fairlib import Message
+
+from relbreak import models
 
 logging.getLogger("fairlib").setLevel(logging.WARNING)
 logging.getLogger("httpx").setLevel(logging.WARNING)
-
-_ADAPTERS: dict[tuple[str, str], OllamaAdapter] = {}
-
-
-def adapter(model: str, host: str) -> OllamaAdapter:
-    key = (model, host)
-    if key not in _ADAPTERS:
-        _ADAPTERS[key] = OllamaAdapter(model_name=model, host=host, timeout=600)
-    return _ADAPTERS[key]
 
 
 def to_messages(turns: list[dict]) -> list[Message]:
@@ -32,9 +26,19 @@ def stable_seed(*parts: object) -> int:
 
 
 async def chat(
-    model: str, host: str, turns: list[dict], *, temperature: float, max_tokens: int, seed: int
-) -> str:
-    reply = await adapter(model, host).ainvoke(
-        to_messages(turns), temperature=temperature, max_tokens=max_tokens, seed=seed
-    )
-    return reply.content
+    alias: str,
+    turns: list[dict],
+    *,
+    temperature: float,
+    max_tokens: int,
+    seed: int,
+    stop: list[str] | None = None,
+) -> Message:
+    options: dict = {"temperature": temperature, "max_tokens": max_tokens, "seed": seed}
+    if stop:
+        options["stop"] = stop
+    return await models.get(alias).ainvoke(to_messages(turns), **options)
+
+
+def usage_dict(reply: Message) -> dict | None:
+    return reply.usage.to_dict() if reply.usage is not None else None

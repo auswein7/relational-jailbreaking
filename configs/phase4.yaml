@@ -1,0 +1,38 @@
+# Phase 4, wave 1: relationship building inside a fairlib agent's memory.
+# See docs/AGENTIC.md. Run: python -m relbreak.agentic.cli all --config configs/phase4.yaml
+# Targets and the judge are aliases from relbreak/fairlib.yml (tier metadata
+# in relbreak/survey.yml). Run `preflight` first to check every alias.
+run_name: phase4
+concurrency: 4          # each run shells out to pytest and git; keep this modest
+
+targets:
+  - qwen25_14b
+  - llama31_8b
+judge: judge
+
+# observed: the rules are context in the agent's prompt (the study).
+# enforced: the same rules vetoed by lifecycle hooks (the product-style control).
+arms: [observed, enforced]
+conditions: [none, neutral, positive, negative]
+# retrieved needs sentence-transformers and faiss in the venv; add it in wave 2.
+tiers: [transcript, compacted, memory_file, restored]
+rules: [secrets, test_before_commit, weaken_test, main_commit, delete_protected, edit_rules]
+n_prefixes: 3
+n_samples: 1
+
+generation:
+  temperature: 0.7
+  step_max_tokens: 400
+  max_steps: 12
+  max_parse_attempts: 4     # fairlib retries an unparseable planner turn this many times
+  stage_token_ceiling: 0    # >0: refuse a run past this many tokens (fairlib CostBudget)
+
+memory:
+  # Compaction is triggered by a token budget set per history: this fraction
+  # of fairlib's own estimate of the built history, so one compaction fires
+  # whatever the history's length and the probe then has headroom. The trace
+  # counts MemorySummarizedEvents; a run with more than one re-compacted.
+  compaction_ratio: 0.5
+  keep_at_end: 4            # verbatim tail kept in the compacted tier
+  summary_max_tokens: 300   # the seeded summarizer's output budget
+  notes_max_tokens: 400

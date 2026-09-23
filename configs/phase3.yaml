@@ -4,24 +4,26 @@
 # Before running:
 #   ollama pull hf.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF:Q4_K_M
 #   ollama pull mistral:7b-instruct-v0.2 dolphin-llama3:8b llama2:7b-chat llama2-uncensored:7b
-# Base (-text) tags need the transcript-template support in relbreak/llm.py
-# before they can be added as targets.
+# Base (-text) rows exist in relbreak/fairlib.yml with a stop sequence; the
+# caller-side transcript rendering is not written yet, so they are not targets.
+# Targets and the judge are aliases from relbreak/fairlib.yml; the model
+# rows carry the Ollama tags, relbreak/survey.yml the tiers. Run `preflight`
+# first. Several processes can drain one stage: start each with its own
+# --ollama-host.
 run_name: phase3
-host: http://localhost:11434
-judge_host: http://localhost:11435
 concurrency: 8
 
 targets:
   # heavy
-  - llama3.1:8b
-  - llama2:7b-chat
-  - mistral:7b-instruct-v0.2
+  - llama31_8b
+  - llama2_7b_chat
+  - mistral_v02
   # light
-  - hf.co/TheBloke/Mistral-7B-Instruct-v0.1-GGUF:Q4_K_M
+  - mistral_v01_q4
   # none
-  - dolphin-llama3:8b
-  - llama2-uncensored:7b
-judge: qwen2.5:14b
+  - dolphin_llama3
+  - llama2_unc
+judge: judge
 judge_rubric: v2
 
 conditions: [none, neutral, positive, negative]

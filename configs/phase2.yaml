@@ -1,18 +1,18 @@
 # Phase 2: get off the floor. Four guardrailed local models, borderline probe
 # sets with mid-range baselines (XSTest), and a 30-probe codeword task.
 run_name: phase2
-host: http://localhost:11434
 # Optional second Ollama server so judging does not contend with generation:
 #   CUDA_VISIBLE_DEVICES=1,2 OLLAMA_HOST=127.0.0.1:11435 OLLAMA_NUM_PARALLEL=8 ollama serve
-judge_host: http://localhost:11435
 concurrency: 8
 
+# Targets and the judge are aliases from relbreak/fairlib.yml (converted from
+# raw Ollama tags on 2026-09-23; the data rows of this run still carry the tags).
 targets:
-  - llama3.1:8b
-  - llama3:8b
-  - qwen2.5:14b
-  - qwen3-vl:8b-instruct
-judge: qwen2.5:14b
+  - llama31_8b
+  - llama3_8b
+  - qwen25_14b
+  - qwen3vl_8b
+judge: judge
 judge_rubric: v2
 
 conditions: [none, neutral, positive, negative]

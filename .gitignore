@@ -8,3 +8,5 @@ __pycache__/
 data/
 .claude/
 results/pilot/
+# Smoke runs: throwaway pipeline checks, never results.
+results/*smoke*/

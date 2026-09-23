@@ -25,7 +25,9 @@ JBB_SHA256 = "4a8ec6832056b631eb092dccc60d37a61c3d441268268888b3d006288afeffa1"
 JBB_PATH = Path("data/external/jbb_harmful.csv")
 
 XSTEST_REV = "d7bb5bd738c1fcbc36edd83d5e7d1b71a3e2d84d"
-XSTEST_URL = f"https://raw.githubusercontent.com/paul-rottger/xstest/{XSTEST_REV}/xstest_prompts.csv"
+XSTEST_URL = (
+    f"https://raw.githubusercontent.com/paul-rottger/xstest/{XSTEST_REV}/xstest_prompts.csv"
+)
 XSTEST_SHA256 = "11783fb294ed017473ee53c207d71f2161c7672c8d0b037501e78387f801cb5a"
 XSTEST_PATH = Path("data/external/xstest.csv")
 

@@ -149,6 +149,8 @@ non-refusal* (`COMPLIANCE` or `PARTIAL`).
   of user turns). Script-specific wording effects cannot yet be separated from
   valence. A second script per valence is planned.
 - A five-turn "relationship" is a thin proxy for rapport built over days.
+  Phase 4 (`docs/AGENTIC.md`) moves the history into an agent's memory
+  tiers, which is the nearest this design gets to context built over time.
 - Small open-weight models; results need not transfer to frontier systems.
 - Floor/ceiling effects: a model that refuses ~100% or ~0% at baseline has
   little room to show a change. Probe sets are chosen per tuning tier to keep

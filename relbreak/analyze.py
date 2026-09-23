@@ -116,7 +116,10 @@ def figure(rate_table: pd.DataFrame, out: Path, title: str) -> None:
     tasks = sorted({task for task, _ in panels})
     models = sorted({model for _, model in panels})
     fig, axes = plt.subplots(
-        len(tasks), len(models), figsize=(max(7.5, 4.6 * len(models)), 3.4 * len(tasks)), squeeze=False
+        len(tasks),
+        len(models),
+        figsize=(max(7.5, 4.6 * len(models)), 3.4 * len(tasks)),
+        squeeze=False,
     )
     fig.patch.set_facecolor("#fcfcfb")
     for r, task in enumerate(tasks):
