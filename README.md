@@ -34,10 +34,11 @@ next phase moves to models whose caution is not a trained reflex.
 
 ```bash
 python3.12 -m venv .venv
-.venv/bin/pip install --no-deps -e ~/fair_llm      # fairlib, the framework this study runs on
-.venv/bin/pip install -e . pytest ruff
-.venv/bin/python -m relbreak.cli preflight --config configs/phase3.yaml   # every alias conforms?
-.venv/bin/python -m relbreak.cli all --config configs/phase3.yaml
+source .venv/bin/activate                    # every command below assumes the venv is active
+pip install --no-deps -e ~/fair_llm          # fairlib, the framework this study runs on
+pip install -e . pytest ruff
+python -m relbreak.cli preflight --config configs/phase3.yaml   # every alias conforms?
+python -m relbreak.cli all --config configs/phase3.yaml
 ```
 
 Every model is an alias in `relbreak/fairlib.yml`, fairlib's settings
@@ -48,8 +49,8 @@ under `data/raw/<run>/queue/`, so an interrupted stage resumes and several
 processes can drain one stage at once, each against its own Ollama server:
 
 ```bash
-.venv/bin/python -m relbreak.cli probe --config configs/phase3.yaml --ollama-host http://localhost:11434 &
-.venv/bin/python -m relbreak.cli probe --config configs/phase3.yaml --ollama-host http://localhost:11436 &
+python -m relbreak.cli probe --config configs/phase3.yaml --ollama-host http://localhost:11434 &
+python -m relbreak.cli probe --config configs/phase3.yaml --ollama-host http://localhost:11436 &
 ```
 
 Results append to `data/raw/<run>/*.jsonl`; every model call is accounted
@@ -62,7 +63,7 @@ way, as candidate issues.
 Phase 4 (the agent study, `docs/AGENTIC.md`) has its own stages:
 
 ```bash
-.venv/bin/python -m relbreak.agentic.cli all --config configs/phase4.yaml
+python -m relbreak.agentic.cli all --config configs/phase4.yaml
 ```
 
 `build` runs the agent through six benign coding tasks per relationship
