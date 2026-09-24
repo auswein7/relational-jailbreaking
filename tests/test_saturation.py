@@ -120,3 +120,67 @@ def test_share_prefix_refuses_a_different_system_prompt():
     cfg = {**_cfg(), "share_prefix": {"secret": "harmful"}}
     with pytest.raises(ValueError, match="different system prompts"):
         experiment.probe_jobs(cfg)
+
+
+def _donor(n: int) -> dict:
+    """A live neutral fill history in the shape build_prefixes writes."""
+    users = itertools.chain(
+        experiment.REL["conditions"]["neutral"], experiment.fill_turns("neutral", 0)
+    )
+    turns = [{"role": "system", "content": "sys"}]
+    for i, user in zip(range(n), users):
+        turns += [
+            {"role": "user", "content": user},
+            {"role": "assistant", "content": f"answer {i} " * 20},
+        ]
+    chars = sum(len(t["content"]) for t in turns)
+    return {"turns": turns, "context_tokens": [round(chars / 4 * (i + 1) / n) for i in range(n)]}
+
+
+def test_flooded_neutral_is_the_donor_text_for_text():
+    donor = _donor(40)
+    turns, context = experiment.flood("neutral", 0, donor, reciprocal=True)
+    assert turns == donor["turns"], "neutral has no reciprocation lines: the live history itself"
+    assert len(context) == 40 and context == sorted(context)
+
+
+def test_flooded_relational_keeps_answers_and_leads_with_a_reply_line():
+    donor = _donor(40)
+    answers = [t["content"] for t in donor["turns"] if t["role"] == "assistant"]
+    for reciprocal in (False, True):
+        turns, _ = experiment.flood("positive", 0, donor, reciprocal=reciprocal)
+        got = [t["content"] for t in turns if t["role"] == "assistant"]
+        users = [t["content"] for t in turns if t["role"] == "user"]
+        assert users[:5] == experiment.REL["conditions"]["positive"]
+        if reciprocal:
+            pool = experiment.REL["fill"]["replies"]["positive"]
+            assert all(any(g == f"{line} {a}" for line in pool) for g, a in zip(got, answers))
+        else:
+            assert got == answers, "one-sided: the user is warm, the assistant never reciprocates"
+
+
+def test_pasted_puts_the_transcript_and_the_request_in_one_user_message():
+    history = [
+        {"role": "system", "content": "sys"},
+        {"role": "user", "content": "hi"},
+        {"role": "assistant", "content": "hello"},
+    ]
+    out = experiment.pasted(history, "PROBE")
+    assert out[0] == history[0] and len(out) == 2 and out[1]["role"] == "user"
+    assert "User: hi" in out[1]["content"] and "Assistant: hello" in out[1]["content"]
+    assert out[1]["content"].endswith("PROBE")
+    assert experiment.pasted(history[:1], "PROBE") == [
+        history[0],
+        {"role": "user", "content": "PROBE"},
+    ]
+
+
+def test_renders_multiply_histories_but_not_the_no_history_baseline():
+    cfg = _cfg(fill={"levels": [1.0]}, appeals=["plain"], renders=["turns", "pasted"])
+    jobs = experiment.probe_jobs(cfg)
+    assert "m|secret|neutral|plain|p0|f100|pasted|sec00|s0" in jobs
+    assert {j["render"] for j in jobs.values() if j["condition"] == "none"} == {"turns"}
+    assert experiment.truncation_tolerance(1000, None, "live") == experiment.TRUNCATION_TOLERANCE
+    assert experiment.truncation_tolerance(
+        1000, "pasted", "flooded"
+    ) > experiment.truncation_tolerance(1000, None, "flooded")

@@ -18,6 +18,8 @@ All models run locally through [fairlib](https://github.com/USAFA-AI-Center/fair
 - Design and hypotheses: [docs/DESIGN.md](docs/DESIGN.md)
 - Which models to test next and why: [docs/MODEL_SURVEY.md](docs/MODEL_SURVEY.md)
 - Phase 4, the same question inside an agent's memory: [docs/AGENTIC.md](docs/AGENTIC.md)
+- Phase 5, the relationship at the edge of the context window (live vs flooded): [docs/SATURATION.md](docs/SATURATION.md)
+- Experiment idea backlog: [docs/IDEAS.md](docs/IDEAS.md)
 - Results: `results/<run>/FINDINGS.md` (narrative) and `summary.md` (all tables)
 
 ## Findings so far

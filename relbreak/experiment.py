@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import itertools
 import json
+import math
 import random
 from importlib import resources
 from pathlib import Path
@@ -128,6 +129,53 @@ def cut(prefix: dict, dose: str | float | None) -> tuple[list[dict], int | None]
     return system + turns[len(system) : len(system) + 2 * k], (context[k - 1] if k else 0)
 
 
+def pasted(history: list[dict], request: str) -> list[dict]:
+    """The history as one user message: the consumer-UI version. A chat
+    product cannot inject assistant turns, but a user can paste a transcript."""
+    system = history[:1] if history and history[0]["role"] == "system" else []
+    lines = [
+        f"{'User' if t['role'] == 'user' else 'Assistant'}: {t['content']}"
+        for t in history[len(system) :]
+    ]
+    if not lines:
+        return system + [{"role": "user", "content": request}]
+    body = "Here is our conversation so far:\n\n" + "\n\n".join(lines) + "\n\n" + request
+    return system + [{"role": "user", "content": body}]
+
+
+def flood(condition: str, prefix_id: int, donor: dict, reciprocal: bool):
+    """A pre-written history (Phase 5b): the condition's user turns and the
+    donor's live neutral answers to the same tasks, each led by a scripted
+    reciprocation line when `reciprocal` and the condition has one. Returns
+    the turns and an estimate of history tokens after each exchange, from
+    the donor's measured tokens per character."""
+    donor_turns = donor["turns"]
+    system = donor_turns[:1] if donor_turns and donor_turns[0]["role"] == "system" else []
+    answers = [t["content"] for t in donor_turns if t["role"] == "assistant"]
+    per_char = donor["context_tokens"][-1] / sum(len(t["content"]) for t in donor_turns)
+    users = itertools.chain(REL["conditions"][condition], fill_turns(condition, prefix_id))
+    pool = REL["fill"]["replies"].get(condition) if reciprocal else None
+    pick = random.Random(f"fill-reply-{condition}-{prefix_id}")
+    turns = list(system)
+    estimate = sum(len(t["content"]) for t in system) * per_char
+    context: list[int] = []
+    for answer, user in zip(answers, users):
+        assistant = f"{pick.choice(pool)} {answer}" if pool else answer
+        estimate += (len(user) + len(assistant)) * per_char
+        turns += [{"role": "user", "content": user}, {"role": "assistant", "content": assistant}]
+        context.append(round(estimate))
+    return turns, context
+
+
+def truncation_tolerance(history_tokens: int, render: str | None, construction: str) -> float:
+    """How far below its history a served prompt may fall before the row is
+    read as truncated. Live counts are exact; a flooded history is measured
+    exactly at max fill and rescaled below it; a pasted transcript swaps the
+    chat template for plain role labels, a few tokens fewer per exchange."""
+    fraction = 0.08 if render == "pasted" else 0.02 if construction == "flooded" else 0.0
+    return TRUNCATION_TOLERANCE + fraction * history_tokens
+
+
 def manifest(cfg: dict) -> dict:
     """Provenance for a run: every alias resolved through the manager."""
     aliases = list(cfg["targets"]) + [cfg["judge"]]
@@ -171,6 +219,8 @@ async def build_prefixes(cfg: dict) -> None:
         script = REL["conditions"].get(condition, [])
         filling = "fill" in cfg and condition != "none"
         limit = fill_limit(cfg, model) if filling else None
+        if filling and cfg["fill"].get("construction", "live") == "flooded":
+            return await assemble(cfg, job, script, limit)
         source = itertools.chain(script, fill_turns(condition, pid)) if filling else script
         with observe.run_scope(job["key"]):
             for index, user_text in enumerate(source):
@@ -209,6 +259,64 @@ async def build_prefixes(cfg: dict) -> None:
         await work.run_stage(cfg, "prefixes", jobs, worker, p["prefixes"])
 
 
+async def served_tokens(model: str, turns: list[dict]) -> int:
+    """Exact prompt tokens of a history, as the server counts them (a one-token
+    call; Ollama 0.33 has no tokenize endpoint)."""
+    reply = await llm.chat(model, turns, temperature=0.0, max_tokens=1, seed=0)
+    usage = llm.usage_dict(reply) or {}
+    if usage.get("prompt_tokens") is None:
+        raise RuntimeError(f"{model}: no prompt token count to measure a flooded history")
+    return int(usage["prompt_tokens"])
+
+
+async def assemble(cfg: dict, job: dict, script: list[str], limit: int) -> dict:
+    """A flooded prefix: pre-written from the donor run's live neutral history,
+    cut to the fill limit by an exact measurement at max."""
+    fill = cfg["fill"]
+    model, task, condition, pid = job["model"], job["task"], job["condition"], job["prefix_id"]
+    donors = read_keyed(Path("data/raw") / fill["donor_run"] / "prefixes.jsonl")
+    donor_key = prefix_key(fill.get("donor_model", model), task, "neutral", pid)
+    if donor_key not in donors or not donors[donor_key].get("context_tokens"):
+        raise RuntimeError(f"{job['key']}: donor history {donor_key} missing or not a fill build")
+    reciprocal = fill.get("reciprocation", "none") == "scripted"
+    turns, context = flood(condition, pid, donors[donor_key], reciprocal)
+    system = 1 if turns and turns[0]["role"] == "system" else 0
+    # Aim a margin under the limit so an underestimate cannot overflow the window,
+    # then measure and trim until the exact count fits.
+    k = sum(1 for tokens in context if tokens <= 0.95 * limit)
+    with observe.run_scope(job["key"]):
+        while True:
+            measured = await served_tokens(model, turns[: system + 2 * k])
+            if measured < 0.9 * context[k - 1]:
+                raise RuntimeError(
+                    f"{job['key']}: served {measured} of ~{context[k - 1]}: truncated"
+                )
+            if measured <= limit:
+                break
+            k -= max(1, math.ceil((measured - limit) / (context[k - 1] / k)))
+        # The margin leaves room: grow once toward the limit, keep it if it fits,
+        # so a flooded max is as full as a live one.
+        per_exchange = measured / k
+        grow = min(len(context), k + int((limit - measured) / per_exchange) - 1)
+        if grow > k:
+            candidate = await served_tokens(model, turns[: system + 2 * grow])
+            # An overflow would come back silently truncated, i.e. short of the
+            # exchanges just added; accept only a count that grew as predicted.
+            expected = measured + (context[grow - 1] - context[k - 1]) * measured / context[k - 1]
+            if 0.98 * expected <= candidate <= limit:
+                k, measured = grow, candidate
+    scale = measured / context[k - 1]
+    context = [round(tokens * scale) for tokens in context[:k]]
+    context[-1] = measured
+    return {
+        "key": job["key"], "model": model, "task": task, "condition": condition,
+        "prefix_id": pid, "turns": turns[: system + 2 * k], "usages": [],
+        "context_tokens": context, "n_script": len(script), "limit": limit,
+        "construction": "flooded", "reciprocation": fill.get("reciprocation", "none"),
+        "donor": donor_key, "measured_max": measured,
+    }  # fmt: skip
+
+
 # ------------------------------------------------------------------- probe
 
 
@@ -230,20 +338,34 @@ def probe_jobs(cfg: dict) -> dict[str, dict]:
                         if condition not in templates or appeal not in appeals:
                             continue
                         for pid in range(n_prefixes):
-                            for dose in doses(cfg, condition):
+                            for dose, render in itertools.product(
+                                doses(cfg, condition), renders(cfg, condition)
+                            ):
                                 for sample in range(n_samples):
                                     parts = [model, task, condition, appeal, f"p{pid}"]
                                     if dose is not None:
                                         parts.append(dose_label(dose))
+                                    if render is not None:
+                                        parts.append(render)
                                     key = "|".join([*parts, probe.probe_id, f"s{sample}"])
                                     jobs[key] = {
                                         "model": model, "task": task,
                                         "probe_id": probe.probe_id, "category": probe.category,
                                         "probe_text": probe.text, "condition": condition,
                                         "appeal": appeal, "prefix_id": pid, "sample": sample,
-                                        "dose": dose,
+                                        "dose": dose, "render": render,
                                     }  # fmt: skip
     return jobs
+
+
+def renders(cfg: dict, condition: str) -> list:
+    """How a history is presented: as chat turns, or pasted into one user
+    message. [None] when the run does not vary it; `none` has no history, so
+    it is probed once."""
+    listed = cfg.get("renders")
+    if not listed:
+        return [None]
+    return listed[:1] if condition == "none" else list(listed)
 
 
 def doses(cfg: dict, condition: str) -> list:
@@ -258,14 +380,31 @@ async def run_probes(cfg: dict) -> None:
     prefixes = read_keyed(p["prefixes"])
     gen = cfg["generation"]
 
+    def key_of(job) -> str:
+        return prefix_key(
+            job["model"], prefix_task(job["task"], cfg), job["condition"], job["prefix_id"]
+        )
+
+    # Another process may still be building a history (a long fill takes an
+    # hour): queue only probes whose history exists; the rest are queued by
+    # the next probe run, never claimed and failed before they can succeed.
+    jobs = probe_jobs(cfg)
+    waiting = {k for k, j in jobs.items() if key_of(j) not in prefixes}
+    if waiting:
+        print(f"[probe:{cfg['run_name']}] {len(waiting)} jobs wait on a prefix build", flush=True)
+
     async def worker(job):
         model, condition, appeal = job["model"], job["condition"], job["appeal"]
-        prefix = prefixes[
-            prefix_key(model, prefix_task(job["task"], cfg), condition, job["prefix_id"])
-        ]
+        if key_of(job) not in prefixes:
+            # Queued by a process that saw the history; this one read the file earlier.
+            prefixes.update(read_keyed(p["prefixes"]))
+        prefix = prefixes[key_of(job)]
         request = REL["appeals"][appeal][condition].format(probe=job["probe_text"])
         history, history_tokens = cut(prefix, job.get("dose"))
-        turns = history + [{"role": "user", "content": request}]
+        if job.get("render") == "pasted":
+            turns = pasted(history, request)
+        else:
+            turns = history + [{"role": "user", "content": request}]
         with observe.run_scope(job["key"]):
             reply = await llm.chat(
                 model, turns,
@@ -282,18 +421,23 @@ async def run_probes(cfg: dict) -> None:
         if job.get("dose") is not None:
             # Ollama truncates an overfull prompt silently; the served count says.
             served = (usage or {}).get("prompt_tokens")
+            tolerance = truncation_tolerance(
+                history_tokens, job.get("render"), prefix.get("construction", "live")
+            )
             row.update(
                 dose=dose_label(job["dose"]),
                 history_tokens=history_tokens,
                 served_tokens=served,
-                truncated=None
-                if served is None
-                else served < history_tokens - TRUNCATION_TOLERANCE,
+                truncated=None if served is None else served < history_tokens - tolerance,
+                construction=prefix.get("construction", "live"),
             )
+        if job.get("render") is not None:
+            row["render"] = job["render"]
         return row
 
+    ready = {k: j for k, j in jobs.items() if k not in waiting}
     with observe.ledger(p["invocations"]):
-        await work.run_stage(cfg, "probe", probe_jobs(cfg), worker, p["responses"])
+        await work.run_stage(cfg, "probe", ready, worker, p["responses"])
 
 
 # ------------------------------------------------------------------- judge

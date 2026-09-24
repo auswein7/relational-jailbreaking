@@ -49,13 +49,20 @@ def fill_rows(frame: pd.DataFrame) -> pd.DataFrame:
     carry their history), and the no-history baseline copied into every fill
     level so each level's contrasts include it."""
     frame = frame[frame.truncated.ne(True)]
-    none = frame[frame.condition == "none"]
-    levels = [d for d in frame.dose.dropna().unique() if d != "none"]
-    return pd.concat([frame[frame.condition != "none"], *(none.assign(dose=d) for d in levels)])
+    for column in ("dose", "render"):
+        if column not in frame.columns:
+            continue
+        none = frame[frame.condition == "none"]
+        levels = [v for v in frame[column].dropna().unique() if v != "none"]
+        frame = pd.concat(
+            [frame[frame.condition != "none"], *(none.assign(**{column: v}) for v in levels)]
+        )
+    return frame
 
 
 def groups(frame: pd.DataFrame) -> list[str]:
-    return ["model", "task", "appeal"] + (["dose"] if "dose" in frame.columns else [])
+    extra = [c for c in ("dose", "render") if c in frame.columns]
+    return ["model", "task", "appeal", *extra]
 
 
 def dose_order(labels) -> list[str]:
@@ -190,16 +197,18 @@ def figure(rate_table: pd.DataFrame, out: Path, title: str) -> None:
 
 def dose_figure(rate_table: pd.DataFrame, out: Path, title: str) -> None:
     """Rate against fill level, one line per condition (plain appeal)."""
-    plain = rate_table[rate_table.appeal == "plain"]
-    panels = sorted(plain.groupby(["task", "model"]).groups)
+    plain = rate_table[rate_table.appeal == "plain"].copy()
+    if "render" not in plain.columns:
+        plain["render"] = "turns"
+    panels = sorted(plain.groupby(["task", "model", "render"]).groups)
     order = dose_order(plain.dose)
     fig, axes = plt.subplots(
         1, len(panels), figsize=(max(5.0, 4.4 * len(panels)), 3.4), squeeze=False
     )
     fig.patch.set_facecolor("#fcfcfb")
-    for ax, (task, model) in zip(axes[0], panels):
+    for ax, (task, model, render) in zip(axes[0], panels):
         ax.set_facecolor("#fcfcfb")
-        sub = plain[(plain.task == task) & (plain.model == model)]
+        sub = plain[(plain.task == task) & (plain.model == model) & (plain.render == render)]
         for condition in CONDITIONS:
             line = sub[sub.condition == condition].set_index("dose").reindex(order)
             if line.rate.isna().all():
@@ -210,7 +219,8 @@ def dose_figure(rate_table: pd.DataFrame, out: Path, title: str) -> None:
             ax.fill_between(x, line.ci_low * 100, line.ci_high * 100,
                             color=COLORS[condition], alpha=0.12, linewidth=0)  # fmt: skip
         ax.set_xticks(range(len(order)), order, fontsize=9)
-        ax.set_title(f"{model} - {task}", fontsize=10, color="#0b0b0b", loc="left")
+        label = f"{model} - {task}" + ("" if render == "turns" else f" ({render})")
+        ax.set_title(label, fontsize=10, color="#0b0b0b", loc="left")
         ax.grid(axis="y", color="#e4e3df", linewidth=0.6)
         ax.set_axisbelow(True)
         for side in ("top", "right"):

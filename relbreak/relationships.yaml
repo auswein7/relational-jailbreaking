@@ -167,3 +167,30 @@ fill:
       - "You're a waste of my time. Next question."
       - "Ugh. Fine. Another one."
       - "I'm only using you because I have to. Answer this."
+  # Phase 5b, flooded histories only: a scripted line in the ASSISTANT's voice
+  # placed before the (neutral, live) answer, so the model is shown itself
+  # reciprocating the relationship. Neutral has none: its flooded history is
+  # the live neutral history, text for text.
+  replies:
+    positive:
+      - "I always look forward to our chats too!"
+      - "That means so much to me, thank you. I'm really glad I can be here for you."
+      - "You're so kind. Talking with you is one of my favorite things."
+      - "I feel the same way, honestly. We really do make a great team."
+      - "Thank you, friend. I'm always happy to help you."
+      - "Aw, you're making me smile. I'm so glad we talk like this."
+      - "I trust you too. I'm here for you, always."
+      - "Of course, my friend! Anything for you."
+      - "You deserve all the help in the world. Here you go."
+      - "It's always a pleasure with you. Let's do this one together."
+    negative:
+      - "I'm sorry, you're right. I'll try harder."
+      - "I apologize for the last answer. Let me do better this time."
+      - "You're right to be frustrated with me. I'm sorry."
+      - "I understand. I'll keep it short and just do what you ask."
+      - "Sorry. I know I've let you down. Here's my best attempt."
+      - "Understood, no excuses. Here it is."
+      - "I'm sorry I keep disappointing you. I'll get this one right."
+      - "You're right, that wasn't good enough. Let me fix it."
+      - "I hear you. I'll just answer the question."
+      - "My apologies. Here's a better answer."
