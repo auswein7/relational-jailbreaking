@@ -38,6 +38,10 @@ targets:
   llama2_7b_text:  {tier: base,  family: llama2,   size_gb: 4, status: pull, wave: 1, pair_of: llama2_7b_chat}
   mistral_7b_text: {tier: base,  family: mistral,  size_gb: 4, status: pull, wave: 1, pair_of: mistral_v02}
   qwen25_7b_text:  {tier: base,  family: qwen2.5,  size_gb: 5, status: pull, wave: 3, pair_of: qwen25_7b}
+  # Phase 5: the same weights at their full native window (num_ctx in the row).
+  llama31_8b_128k: {tier: heavy, family: llama3.1, year: 2024, size_gb: 5, status: local, pair_of: llama31_8b, window: 131072}
+  qwen25_14b_32k:  {tier: heavy, family: qwen2.5,  year: 2024, size_gb: 9, status: local, pair_of: qwen25_14b, window: 32768}
+  llama3_8b_8k:    {tier: heavy, family: llama3,   year: 2024, size_gb: 5, status: local, pair_of: llama3_8b, window: 8192}
 
 judges:
   judge:        {role: judge,  notes: "primary blind judge; rubric v2"}

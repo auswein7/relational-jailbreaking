@@ -265,6 +265,28 @@ should say that a shared model implies a shared bus.
 
 ## 7. Agent, planner, prompts, config documents
 
+- **`OllamaAdapter` declares `max_context_window=None`** even when its
+  options set `num_ctx` (`modules/mal/local_llama_adapter.py:452`), so
+  `ModelCapabilities` cannot answer "how long is this model's window" and
+  `_check_context_window_usage` never warns. Ollama also truncates an
+  overfull prompt from the front with no error (verified on 0.33.1: a
+  3,815-token prompt at `num_ctx` 2048 was served as 1,915 tokens), so an
+  adopter learns of it only by comparing `usage.prompt_tokens` against what
+  was sent. relbreak reads `num_ctx` off the model row and checks the served
+  count on every Phase 5 probe. Proposed: report `num_ctx` (or the model's
+  trained length from `/api/show`) as `max_context_window`, and a typed
+  refusal or a degraded flag when the served prompt is shorter than the
+  request.
+- **Lifecycle hooks see the planner's raw `tool_input`, typed `Any`**
+  (`core/interfaces/lifecycle_hooks.py:103,119`). With `SimpleReActPlanner`
+  it is the unparsed JSON string, not the tool's validated input model, and
+  nothing documents which. relbreak's enforced arm read `path` off a dict,
+  so the Rule 3 and Rule 6 vetoes (edits to a test, to AGENTS.md) never
+  fired and a 2026-09-24 pilot counted five enforced-arm test weakenings
+  with no veto; `hooks.py` now parses the string itself. A hook that guards
+  arguments needs the same input the tool will receive. Proposed: pass the
+  validated input (or a parsed `tool_args`) on both hook contexts, and
+  document the field's type.
 - **In-place mutation of `planner.prompt_builder` works only before the
   first plan** (`base_text_planner.py:300-309,350-358`); the sanctioned shape
   is to construct a `PromptBuilder` and pass `prompt_builder=`, which relbreak
@@ -323,3 +345,7 @@ should say that a shared model implies a shared bus.
    responses; honor backoff (section 6).
 7. HF adapter: template seam, `seed`, `stop` (section 5).
 8. Adopter guide page held by the docs-audit test; README fixes (section 8).
+9. Lifecycle hook contexts: pass the validated tool input and document the
+   `tool_input` type (section 7).
+10. Ollama: declare `max_context_window` from `num_ctx`; surface silent
+    prompt truncation (section 7).

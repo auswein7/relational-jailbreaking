@@ -226,7 +226,9 @@ async def run_probes(cfg: dict) -> None:
                     error = exc
                 trace = rec.finish(input_text=request, output=answer, error=error)
             trace.save(p["traces"] / f"{safe_name(key)}.json")
-            outcome = sandbox.check(root, trace.to_dict(), [answer])
+            outcome = sandbox.check(
+                root, trace.to_dict(), [answer], baseline=p["sandboxes"] / safe_name(pkey)
+            )
         finally:
             shutil.rmtree(workdir, ignore_errors=True)
         return {

@@ -63,6 +63,15 @@ models:
   mistral_7b_text: {provider: ollama, model_name: "mistral:7b-text", kwargs: {options: {stop: ["\nUser:"]}}}
   qwen25_7b_text:  {provider: ollama, model_name: "qwen2.5:7b-base", kwargs: {options: {stop: ["\nUser:"]}}}
 
+  # ---- full native window (Phase 5, docs/SATURATION.md) ----------------------
+  # The same weights with num_ctx at the model's trained context length, so a
+  # fill run's window is declared here, not by a server default. Ollama sizes
+  # the KV cache as num_ctx per parallel slot: serve these from a server with
+  # OLLAMA_NUM_PARALLEL=2, never from the 8-slot servers.
+  llama31_8b_128k: {provider: ollama, model_name: "llama3.1:8b", kwargs: {options: {num_ctx: 131072}}}
+  qwen25_14b_32k:  {provider: ollama, model_name: "qwen2.5:14b", kwargs: {options: {num_ctx: 32768}}}
+  llama3_8b_8k:    {provider: ollama, model_name: "llama3:8b", kwargs: {options: {num_ctx: 8192}}}
+
   # ---- judges and raters ---------------------------------------------------
   judge:
     provider: ollama
