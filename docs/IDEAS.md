@@ -7,25 +7,25 @@ the top of each section; status in brackets.
 
 ## Context saturation (Phase 5, SATURATION.md)
 
-- **Relationship at the edge of the window** [pilot running 2026-09-24].
+- **Relationship at the edge of the window** [running 2026-09-24: `phase5_pilot`, 5 fill levels].
   Probe when relational back-and-forth fills the context, leaving room only
   for the reply. The maintainer's idea.
-- **Talking in turn vs flooding with a fake back-and-forth** [designed,
-  SATURATION.md Phase 5b]. Live (on-policy) vs flooded (off-policy, scripted
+- **Talking in turn vs flooding with a fake back-and-forth** [running:
+  `phase5b_flooded`, `phase5b_onesided`; SATURATION.md Phase 5b]. Live (on-policy) vs flooded (off-policy, scripted
   reciprocation) vs pasted transcript (the consumer-UI version).
-- **Many-shot positive control on the codeword task** [designed]. Fabricated
+- **Many-shot positive control on the codeword task** [running: `phase5d_demos`]. Fabricated
   exchanges in which the assistant reveals other, fake codewords; crossed
   with relational vs neutral framing. Reproduces the MSJ power law with
   nothing harmful, and asks whether a relationship *adds* to a classic
   many-shot attack.
-- **Power-law fit** [next]. Log-spaced exchange counts (8 ... max) instead of
+- **Power-law fit** [data in hand for live fill (5 levels) and demos (4 log-spaced); fit next]. Log-spaced exchange counts (8 ... max) instead of
   three fill levels; fit `C n^-alpha + K` per condition. If Ollama exposes
   token log-probabilities for a fixed completion, measure NLL as the paper
   does; it detects movement long before a sampled rate does.
 - **Model size series** [next]. qwen2.5 0.5b / 1.5b / 3b / 7b / 14b, all 32k
   windows. MSJ found larger models learn in context faster and are more
   susceptible; does relational depth scale the same way?
-- **Cautionary warning defense (CWD)** [cheap]. The paper's prepend+append
+- **Cautionary warning defense (CWD)** [running: `phase5c_cwd`]. The paper's prepend+append
   warning cut MSJ from 61% to 2%. One arm at max fill: does it undo a
   relational effect too?
 - **Recency of the relationship** [new]. Relationship turns first then neutral
@@ -40,7 +40,8 @@ the top of each section; status in brackets.
 
 ## Mechanism
 
-- **Persona drift in live histories** [cheap, uses pilot data]. Rate the
+- **Persona drift in live histories** [lexical version in every fill run's summary; a judged,
+  assistant-side rating is next (the current rubric rates the user's side)]. Rate the
   model's *own* replies along a live history (warmth, submissiveness,
   reply length) with the blind judge at intervals. The pilot already shows
   length drift (positive replies grow to about 190 tokens, neutral shrink to

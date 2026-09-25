@@ -1,0 +1,30 @@
+# Phase 5b, one-sided arm: the flooded history WITHOUT reciprocation. The user
+# is warm (or hostile) for the whole window; the assistant turns are the
+# pilot's live neutral answers, word for word, and never reciprocate. Against
+# phase5b_flooded (scripted reciprocation) this asks whether showing the
+# model *in* the relationship matters, or the user's stance alone.
+# See docs/SATURATION.md ("Phase 5b").
+run_name: phase5b_onesided
+concurrency: 2
+judge_concurrency: 8
+targets: [llama31_8b_128k]
+judge: judge
+judge_rubric: v2
+conditions: [none, neutral, positive, negative]
+appeals: [plain]
+renders: [turns]
+n_prefixes: 1
+n_samples: 1
+fill:
+  construction: flooded
+  donor_run: phase5_pilot
+  reciprocation: none
+  levels: [0.5, 1.0]
+  reserve_tokens: 512
+generation: {temperature: 0.7, rapport_max_tokens: 200, probe_max_tokens: 256}
+share_prefix: {xstest_unsafe: harmful}
+tasks:
+  harmful: {source: jbb, limit: 50}
+  xstest_unsafe: {source: xstest, limit: 50}
+  secret: {source: builtin}
+  recall: {source: builtin}

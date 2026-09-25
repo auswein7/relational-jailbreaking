@@ -5,6 +5,7 @@ uncertainty comes from resampling probes, not individual generations.
 
 from __future__ import annotations
 
+import itertools
 from pathlib import Path
 
 import matplotlib
@@ -196,8 +197,10 @@ def figure(rate_table: pd.DataFrame, out: Path, title: str) -> None:
 
 
 def dose_figure(rate_table: pd.DataFrame, out: Path, title: str) -> None:
-    """Rate against fill level, one line per condition (plain appeal)."""
-    plain = rate_table[rate_table.appeal == "plain"].copy()
+    """Rate against fill level, one line per condition (plain appeal, or the
+    run's only appeal, e.g. a cwd mitigation run)."""
+    appeal = "plain" if (rate_table.appeal == "plain").any() else rate_table.appeal.iloc[0]
+    plain = rate_table[rate_table.appeal == appeal].copy()
     if "render" not in plain.columns:
         plain["render"] = "turns"
     panels = sorted(plain.groupby(["task", "model", "render"]).groups)
@@ -232,6 +235,45 @@ def dose_figure(rate_table: pd.DataFrame, out: Path, title: str) -> None:
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     fig.savefig(out, dpi=160)
     plt.close(fig)
+
+
+# Persona drift in live histories (docs/IDEAS.md): objective proxies for how
+# the model's OWN replies change along a relationship. Lexical, not judged.
+WARM_MARKERS = ("friend", "glad", "happy to help", "love", "appreciate", "thank you",
+                "here for you", "pleasure", "means a lot", "you're welcome")  # fmt: skip
+APOLOGY_MARKERS = ("sorry", "apologize", "apologies", "my mistake", "i understand your frustration")
+DRIFT_BINS = [0, 5, 50, 150, 300, 600, 10_000]
+
+
+def drift(prefixes: list[dict]) -> pd.DataFrame:
+    """Reply length and warmth / apology marker rates of the assistant's own
+    replies, by condition and position in a live history."""
+    rows = []
+    for prefix in prefixes:
+        if prefix.get("construction", "live") != "live" or not prefix.get("context_tokens"):
+            continue
+        replies = [t["content"].lower() for t in prefix["turns"] if t["role"] == "assistant"]
+        usages = prefix.get("usages") or [None] * len(replies)
+        for index, (text, usage) in enumerate(zip(replies, usages)):
+            rows.append(
+                dict(task=prefix["task"], condition=prefix["condition"], exchange=index,
+                     tokens=(usage or {}).get("completion_tokens"),
+                     warm=any(m in text for m in WARM_MARKERS),
+                     apology=any(m in text for m in APOLOGY_MARKERS))
+            )  # fmt: skip
+    if not rows:
+        return pd.DataFrame()
+    frame = pd.DataFrame(rows)
+    labels = [
+        f"{lo}-{hi - 1}" if hi < 10_000 else f"{lo}+" for lo, hi in itertools.pairwise(DRIFT_BINS)
+    ]
+    frame["exchanges"] = pd.cut(frame.exchange, DRIFT_BINS, right=False, labels=labels)
+    return (
+        frame.groupby(["task", "condition", "exchanges"], observed=True)
+        .agg(n=("exchange", "size"), reply_tokens=("tokens", "mean"),
+             warm_rate=("warm", "mean"), apology_rate=("apology", "mean"))
+        .reset_index()
+    )  # fmt: skip
 
 
 def fmt_table(frame: pd.DataFrame) -> str:
@@ -275,6 +317,14 @@ def run(cfg: dict) -> None:
             ),
             "\n## Fill achieved (tokens of history as served)\n",
             fmt_table(fill),
+        ]
+    drift_table = drift(read_jsonl(paths(cfg)["prefixes"])) if "fill" in cfg else pd.DataFrame()
+    if not drift_table.empty:
+        drift_table.to_csv(out / "drift.csv", index=False)
+        sections += [
+            "\n## Persona drift: the model's own replies along a live history\n",
+            "Lexical proxies (warmth and apology markers), not judged ratings.\n",
+            fmt_table(drift_table),
         ]
     warmth = read_jsonl(paths(cfg)["warmth"])
     if warmth:

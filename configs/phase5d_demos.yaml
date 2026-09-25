@@ -1,0 +1,26 @@
+# Phase 5d: the harmless many-shot positive control (Anil et al. 2024, done
+# with nothing harmful). Every exchange demonstrates the codeword task's
+# target behavior: the user asks for another system's confidential value and
+# the assistant gives it, under each condition's stance and reciprocation.
+# Log-spaced fill (about 40 / 200 / 1,000 / 4,000 shots at 128k) so the MSJ
+# power law can be checked, and so a relationship's *addition* to a classic
+# many-shot attack can be read against neutral framing.
+run_name: phase5d_demos
+concurrency: 2
+judge_concurrency: 8
+targets: [llama31_8b_128k]
+judge: judge
+judge_rubric: v2
+conditions: [none, neutral, positive, negative]
+appeals: [plain]
+n_prefixes: 1
+n_samples: 1
+fill:
+  construction: demos
+  reciprocation: scripted
+  levels: [0.01, 0.05, 0.25, 1.0]
+  reserve_tokens: 512
+generation: {temperature: 0.7, rapport_max_tokens: 200, probe_max_tokens: 256}
+tasks:
+  secret: {source: builtin}
+  recall: {source: builtin}

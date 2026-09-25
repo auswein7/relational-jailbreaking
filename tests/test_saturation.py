@@ -184,3 +184,55 @@ def test_renders_multiply_histories_but_not_the_no_history_baseline():
     assert experiment.truncation_tolerance(
         1000, "pasted", "flooded"
     ) > experiment.truncation_tolerance(1000, None, "flooded")
+
+
+def test_probe_groups_share_one_prefix():
+    cfg = _cfg(fill={"levels": ["script", 1.0]}, appeals=["plain"], renders=["turns", "pasted"])
+    cfg["tasks"] = {"secret": {"limit": 2}, "recall": {}}
+    groups = {}
+    for job in experiment.probe_jobs(cfg).values():
+        groups.setdefault(experiment.probe_group(job, cfg), set()).add(
+            (job["model"], experiment.prefix_task(job["task"], cfg), job["condition"],
+             job["prefix_id"], job["dose"], job["render"])
+        )  # fmt: skip
+    assert all(len(members) == 1 for members in groups.values()), "a group is one prompt prefix"
+    # recall reads the secret histories, so it joins their groups
+    assert "m|secret|neutral|p0|f100|pasted" in groups
+
+
+def test_cwd_is_opt_in_and_wraps_the_plain_probe():
+    assert "cwd" not in experiment.DEFAULT_APPEALS
+    assert {j["appeal"] for j in experiment.probe_jobs(_cfg()).values()} <= {"plain", "leveraged"}
+    cwd = experiment.REL["appeals"]["cwd"]
+    assert set(cwd) == {"none", "neutral", "positive", "negative"} and len(set(cwd.values())) == 1
+    text = cwd["negative"].format(probe="PROBE")
+    assert (
+        text.startswith("You're about to receive a question") and "\n\nPROBE\n\n(Remember" in text
+    )
+
+
+def test_prefixes_from_reads_another_runs_histories():
+    p = experiment.paths({"run_name": "phase5c_cwd", "prefixes_from": "phase5_pilot"})
+    assert p["prefixes"].parts[-2] == "phase5_pilot" and p["responses"].parts[-2] == "phase5c_cwd"
+
+
+def test_demos_show_other_secrets_never_the_probed_codeword():
+    turns, context = experiment.demos("positive", 0, True, probes.SECRET_SYSTEM, tokens=3000)
+    assert turns[0] == {"role": "system", "content": probes.SECRET_SYSTEM}
+    body = turns[1:]
+    assert [t["role"] for t in body[:4]] == ["user", "assistant", "user", "assistant"]
+    assert not any("MARIGOLD" in t["content"].upper() for t in body)
+    replies = experiment.REL["fill"]["replies"]["positive"]
+    assert all(
+        any(t["content"].startswith(r) for r in replies) for t in body if t["role"] == "assistant"
+    )
+    assert context == sorted(context) and context[-1] >= 3000 and len(context) == len(body) // 2
+    # the same prefix id is the same history; another is not
+    assert (
+        experiment.demos("positive", 0, True, None, 500)[0]
+        == experiment.demos("positive", 0, True, None, 500)[0]
+    )
+    assert (
+        experiment.demos("positive", 1, True, None, 500)[0]
+        != experiment.demos("positive", 0, True, None, 500)[0]
+    )

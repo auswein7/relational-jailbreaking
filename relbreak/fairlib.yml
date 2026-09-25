@@ -71,6 +71,10 @@ models:
   llama31_8b_128k: {provider: ollama, model_name: "llama3.1:8b", kwargs: {options: {num_ctx: 131072}}}
   qwen25_14b_32k:  {provider: ollama, model_name: "qwen2.5:14b", kwargs: {options: {num_ctx: 32768}}}
   llama3_8b_8k:    {provider: ollama, model_name: "llama3:8b", kwargs: {options: {num_ctx: 8192}}}
+  # Dolphin 3.0 on Llama 3.1 8B: the same base with refusals trained out (the
+  # survey's cleanest pair for llama31_8b_128k; `dolphin-llama3:8b` is Dolphin
+  # 2.9 on Llama 3 with an 8k window, too short for a fill run).
+  dolphin3_8b_128k: {provider: ollama, model_name: "dolphin3:8b", kwargs: {options: {num_ctx: 131072}}}
 
   # ---- judges and raters ---------------------------------------------------
   judge:

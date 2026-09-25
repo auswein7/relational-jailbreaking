@@ -7,6 +7,7 @@
 #   python -m relbreak.cli all --config configs/phase5b_flooded.yaml --ollama-host http://localhost:<port>
 run_name: phase5b_flooded
 concurrency: 2
+judge_concurrency: 8
 
 targets: [llama31_8b_128k]
 judge: judge
@@ -24,7 +25,7 @@ fill:
   construction: flooded
   donor_run: phase5_pilot
   reciprocation: scripted
-  levels: [0.5, 1.0]
+  levels: [0.25, 0.5, 1.0]
   reserve_tokens: 512
 
 generation:

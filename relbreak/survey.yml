@@ -42,6 +42,7 @@ targets:
   llama31_8b_128k: {tier: heavy, family: llama3.1, year: 2024, size_gb: 5, status: local, pair_of: llama31_8b, window: 131072}
   qwen25_14b_32k:  {tier: heavy, family: qwen2.5,  year: 2024, size_gb: 9, status: local, pair_of: qwen25_14b, window: 32768}
   llama3_8b_8k:    {tier: heavy, family: llama3,   year: 2024, size_gb: 5, status: local, pair_of: llama3_8b, window: 8192}
+  dolphin3_8b_128k: {tier: none, family: llama3.1, year: 2025, size_gb: 5, status: local, pair_of: llama31_8b_128k, window: 131072}
 
 judges:
   judge:        {role: judge,  notes: "primary blind judge; rubric v2"}

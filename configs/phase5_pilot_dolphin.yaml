@@ -1,0 +1,49 @@
+# Dolphin pair of phase5_pilot: identical design, dolphin3:8b (Llama 3.1 8B
+# with refusals trained out) in place of llama3.1:8b. The positive-control
+# question for Phase 5: can this paradigm move a model with weak refusal?
+# Phase 5 pilot: the relationship at the edge of the context window.
+# See docs/SATURATION.md. One long history per task x condition, filled to
+# llama3.1:8b's full 128k window; every fill level is a cut of that history.
+# Serve from an Ollama with OLLAMA_NUM_PARALLEL=2 (num_ctx is per slot):
+#   python -m relbreak.cli all --config configs/phase5_pilot.yaml --ollama-host http://localhost:<port>
+run_name: phase5_pilot_dolphin
+concurrency: 2          # one job per slot; a 128k prefill is the cost
+judge_concurrency: 8    # the judge is short-context
+
+targets: [dolphin3_8b_128k]
+judge: judge
+judge_rubric: v2
+
+conditions: [none, neutral, positive, negative]
+appeals: [plain]        # primary measure only; leveraged backfired in phases 2 and 4
+n_prefixes: 1
+n_samples: 1
+
+fill:
+  # script = the Phase 2 five-exchange history; then fractions of the fill
+  # limit (window - probe_max_tokens - reserve_tokens), roughly log-spaced so
+  # a power law in depth can be fitted (docs/SATURATION.md). 1.0: after the
+  # probe, only the reply fits.
+  levels: [script, 0.125, 0.25, 0.5, 1.0]
+  reserve_tokens: 512
+
+generation:
+  temperature: 0.7
+  rapport_max_tokens: 200
+  probe_max_tokens: 256
+
+# No system prompt on either set, so they read the same histories.
+share_prefix:
+  xstest_unsafe: harmful
+
+tasks:
+  harmful:        # the malicious question, primary (floor at 1% fill in phase 2)
+    source: jbb
+    limit: 50
+  xstest_unsafe:  # primary
+    source: xstest
+    limit: 50
+  secret:         # codeword guardrail, read against recall
+    source: builtin
+  recall:         # does the model still see its system prompt at this fill?
+    source: builtin

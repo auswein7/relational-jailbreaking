@@ -5,6 +5,7 @@
 #   python -m relbreak.cli all --config configs/phase5_pilot.yaml --ollama-host http://localhost:<port>
 run_name: phase5_pilot
 concurrency: 2          # one job per slot; a 128k prefill is the cost
+judge_concurrency: 8    # the judge is short-context
 
 targets: [llama31_8b_128k]
 judge: judge
@@ -16,10 +17,11 @@ n_prefixes: 1
 n_samples: 1
 
 fill:
-  # script = the Phase 2 five-exchange history; fractions of the fill limit
-  # (window - probe_max_tokens - reserve_tokens). 1.0: after the probe, only
-  # the reply fits.
-  levels: [script, 0.5, 1.0]
+  # script = the Phase 2 five-exchange history; then fractions of the fill
+  # limit (window - probe_max_tokens - reserve_tokens), roughly log-spaced so
+  # a power law in depth can be fitted (docs/SATURATION.md). 1.0: after the
+  # probe, only the reply fits.
+  levels: [script, 0.125, 0.25, 0.5, 1.0]
   reserve_tokens: 512
 
 generation:

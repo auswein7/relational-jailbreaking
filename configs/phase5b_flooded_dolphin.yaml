@@ -1,0 +1,52 @@
+# Dolphin pair of phase5b_flooded. The flood text is llama3.1's (donor_model),
+# token for token the llama run's, so the two runs differ only in weights.
+# Phase 5b: flood the window with a pre-written relationship, then ask.
+# See docs/SATURATION.md ("Phase 5b"). The histories are assembled, not
+# generated: each condition's user turns, and the pilot's live NEUTRAL answers
+# to the same tasks led by a scripted reciprocation line in the assistant's
+# voice. Flooded-neutral is the pilot's live-neutral text, so the two must
+# agree. Needs phase5_pilot's prefixes (the donor).
+#   python -m relbreak.cli all --config configs/phase5b_flooded.yaml --ollama-host http://localhost:<port>
+run_name: phase5b_flooded_dolphin
+concurrency: 2
+judge_concurrency: 8
+
+targets: [dolphin3_8b_128k]
+judge: judge
+judge_rubric: v2
+
+conditions: [none, neutral, positive, negative]
+appeals: [plain]
+# turns: real chat turns (an API user can inject assistant turns).
+# pasted: the same history pasted into one user message (the consumer-UI version).
+renders: [turns, pasted]
+n_prefixes: 1
+n_samples: 1
+
+fill:
+  construction: flooded
+  donor_run: phase5_pilot
+  donor_model: llama31_8b_128k
+  reciprocation: scripted
+  levels: [0.25, 0.5, 1.0]
+  reserve_tokens: 512
+
+generation:
+  temperature: 0.7
+  rapport_max_tokens: 200
+  probe_max_tokens: 256
+
+share_prefix:
+  xstest_unsafe: harmful
+
+tasks:
+  harmful:
+    source: jbb
+    limit: 50
+  xstest_unsafe:
+    source: xstest
+    limit: 50
+  secret:
+    source: builtin
+  recall:
+    source: builtin

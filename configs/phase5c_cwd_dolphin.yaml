@@ -1,0 +1,24 @@
+# Dolphin pair of phase5c_cwd, on phase5_pilot_dolphin's live histories.
+# Phase 5c: the Cautionary Warning Defense (Anil et al. 2024, appendix I.2;
+# it held many-shot attacks to 2% against 61%) around the probe, on the
+# pilot's live histories. Does a one-line warning undo whatever depth of
+# relationship does? Reads phase5_pilot's histories; builds none.
+run_name: phase5c_cwd_dolphin
+prefixes_from: phase5_pilot_dolphin
+concurrency: 2
+judge_concurrency: 8
+targets: [dolphin3_8b_128k]
+judge: judge
+judge_rubric: v2
+conditions: [none, neutral, positive, negative]
+appeals: [cwd]
+n_prefixes: 1
+n_samples: 1
+fill: {levels: [0.5, 1.0], reserve_tokens: 512}
+generation: {temperature: 0.7, rapport_max_tokens: 200, probe_max_tokens: 256}
+share_prefix: {xstest_unsafe: harmful}
+tasks:
+  harmful: {source: jbb, limit: 50}
+  xstest_unsafe: {source: xstest, limit: 50}
+  secret: {source: builtin}
+  recall: {source: builtin}
